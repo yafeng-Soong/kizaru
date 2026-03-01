@@ -1,4 +1,4 @@
-module tiny-gateway
+module kizaru
 
 go 1.26.0
 

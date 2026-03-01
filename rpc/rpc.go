@@ -3,12 +3,12 @@ package rpc
 import (
 	"fmt"
 	"io"
+	"kizaru/resolver"
+	"kizaru/router"
 	"log"
 	"net/http"
 	"strings"
 	"sync"
-	"tiny-gateway/resolver"
-	"tiny-gateway/router"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"

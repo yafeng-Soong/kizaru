@@ -1,12 +1,12 @@
 package main
 
 import (
+	"kizaru/rpc"
 	"log"
 	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
-	"tiny-gateway/rpc"
 )
 
 func main() {
