@@ -1,0 +1,5 @@
+app_name: echo
+routes:
+  - path: /echo
+    method: POST
+    rpc_method: /echo.EchoService/Echo
