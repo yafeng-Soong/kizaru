@@ -1,3 +1,4 @@
+// Package router provides HTTP-to-gRPC route loading and management.
 package router
 
 import (
@@ -17,6 +18,7 @@ func init() {
 
 var routeMap = make(map[string]RouteInfo)
 
+// RouteInfo defines the mapping between an HTTP path and its corresponding gRPC method.
 type RouteInfo struct {
 	Method string
 	Desc   protoreflect.MethodDescriptor
@@ -26,7 +28,7 @@ type RouteInfo struct {
 func GetRouteInfo(urlPath string) (RouteInfo, error) {
 	info, ok := routeMap[urlPath]
 	if !ok {
-		return info, fmt.Errorf("Method not found: %s", urlPath)
+		return info, fmt.Errorf("method not found: %s", urlPath)
 	}
 
 	return info, nil

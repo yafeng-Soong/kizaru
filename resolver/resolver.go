@@ -1,3 +1,4 @@
+// Package resolver provides etcd-based gRPC resolver implementation.
 package resolver
 
 import (
@@ -40,7 +41,7 @@ func Scheme() string {
 // Clear close etcd client.
 func Clear() {
 	if etcdClient != nil {
-		etcdClient.Close()
+		_ = etcdClient.Close()
 	}
 
 	log.Println("[resolver] closed")

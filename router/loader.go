@@ -1,3 +1,4 @@
+// Package router provides HTTP-to-gRPC route loading and management.
 package router
 
 import (
@@ -5,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"path"
+	"path/filepath"
 
 	"github.com/bufbuild/protocompile"
 	"google.golang.org/protobuf/reflect/protoreflect"
@@ -72,7 +74,7 @@ func loadAppRoutes(ctx context.Context, compiler *protocompile.Compiler, service
 	)
 
 	// read api yml file.
-	apiFilePath := path.Join("proto", serviceName, serviceName+".yml")
+	apiFilePath := filepath.Clean(path.Join("proto", serviceName, serviceName+".yml"))
 	apiFile, err := os.ReadFile(apiFilePath)
 	if err != nil {
 		return fmt.Errorf("read api file %s: %w", apiFilePath, err)

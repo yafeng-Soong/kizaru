@@ -1,6 +1,8 @@
+// Package rpc handles HTTP request dispatching to gRPC services.
 package rpc
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"kizaru/resolver"
@@ -9,12 +11,15 @@ import (
 	"net/http"
 	"strings"
 	"sync"
+	"time"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/types/dynamicpb"
 )
+
+const defaultInvokeTimeout = 10 * time.Second
 
 var connMap sync.Map
 
@@ -56,7 +61,9 @@ func handleRPC(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Failed to read request body", http.StatusBadRequest)
 		return
 	}
-	defer r.Body.Close()
+	defer func() {
+		_ = r.Body.Close()
+	}()
 	methodDesc := info.Desc
 
 	// JSON -> Protobuf
@@ -75,7 +82,10 @@ func handleRPC(w http.ResponseWriter, r *http.Request) {
 	}
 
 	respMsg := dynamicpb.NewMessage(methodDesc.Output())
-	if err := conn.Invoke(r.Context(), info.Method, reqMsg, respMsg); err != nil {
+	ctx, cancel := context.WithTimeout(r.Context(), defaultInvokeTimeout)
+	defer cancel()
+
+	if err := conn.Invoke(ctx, info.Method, reqMsg, respMsg); err != nil {
 		http.Error(w, fmt.Sprintf("Failed to call gRPC: %v", err), http.StatusBadGateway)
 		return
 	}
@@ -88,7 +98,7 @@ func handleRPC(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	w.Write(jsonBytes)
+	_, _ = w.Write(jsonBytes)
 }
 
 func getClient(serviceName string) (*grpc.ClientConn, error) {
