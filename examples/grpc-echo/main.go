@@ -2,61 +2,43 @@ package main
 
 import (
 	"context"
-	"fmt"
+	"flag"
 	"log"
-	"net"
-	"os"
-	"os/signal"
-	"syscall"
 
 	"google.golang.org/grpc"
 
 	pb "grpc-echo/proto/echo"
-	"grpc-echo/registry"
+
+	"github.com/yafeng-Soong/aokiji/registry/etcd"
+	"github.com/yafeng-Soong/aokiji/server"
 )
 
-var (
-	serviceName = "echo"
-	listenAddr  string
-)
+var registryAddr = flag.String("registry", "localhost:2379", "etcd registry address")
 
 func init() {
-	if localIP := getLocalAddr(); localIP == "" {
-		log.Fatal("failed to get local IP address")
-	} else {
-		listenAddr = fmt.Sprintf("%s:0", localIP)
-	}
+	flag.Parse()
 }
 
 func main() {
-	lis, err := net.Listen("tcp", listenAddr)
-	if err != nil {
-		log.Fatalf("failed to listen, error: %v", err)
-	}
-
-	ctx := context.Background()
-	addr := lis.Addr().String()
-	registry.Register(ctx, serviceName, addr)
-	defer registry.Deregister(ctx)
-
 	grpcServer := grpc.NewServer()
 	pb.RegisterEchoServiceServer(grpcServer, &echoServer{})
 
-	// Graceful shutdown handling
-	stop := make(chan os.Signal, 1)
-	signal.Notify(stop, syscall.SIGINT, syscall.SIGTERM)
+	etcdRegistry, err := etcd.NewRegistry(
+		etcd.WithEndpoints([]string{*registryAddr}),
+	)
+	if err != nil {
+		log.Fatalf("failed to create etcd registry: %v", err)
+	}
 
-	go func() {
-		log.Printf("gRPC echo server listening on %s", addr)
-		if err := grpcServer.Serve(lis); err != nil {
-			log.Fatalf("failed to serve: %v", err)
-		}
-	}()
+	svr := server.NewServer(
+		server.WithServiceName("echo"),
+		server.WithGRPCServer(grpcServer),
+		server.WithRegistry(etcdRegistry),
+	)
 
-	<-stop
-	log.Println("shutting down gRPC server...")
-	grpcServer.GracefulStop()
-	log.Println("server stopped")
+	if err := svr.Start(context.Background()); err != nil {
+		log.Fatalf("failed to start server: %v", err)
+	}
 }
 
 type echoServer struct {
@@ -66,21 +48,4 @@ type echoServer struct {
 func (s *echoServer) Echo(ctx context.Context, req *pb.EchoRequest) (*pb.EchoResponse, error) {
 	log.Printf("received: %s", req.GetMessage())
 	return &pb.EchoResponse{Message: req.GetMessage()}, nil
-}
-
-func getLocalAddr() string {
-	addrs, err := net.InterfaceAddrs()
-	if err != nil {
-		return ""
-	}
-
-	for _, addr := range addrs {
-		if ipnet, ok := addr.(*net.IPNet); ok && !ipnet.IP.IsLoopback() {
-			if ip := ipnet.IP.To4(); ip != nil {
-				return ip.String()
-			}
-		}
-	}
-
-	return ""
 }

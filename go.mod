@@ -1,9 +1,10 @@
 module kizaru
 
-go 1.26.0
+go 1.26.1
 
 require (
 	github.com/bufbuild/protocompile v0.14.1
+	github.com/yafeng-Soong/aokiji v0.0.1
 	go.etcd.io/etcd/client/v3 v3.6.8
 	google.golang.org/grpc v1.79.1
 	google.golang.org/protobuf v1.36.11
